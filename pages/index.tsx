@@ -1,100 +1,181 @@
-import { ConnectWallet } from "@thirdweb-dev/react";
+import { ConnectWallet, toEther, toWei, useAddress, useBalance, useContract, useContractMetadata, useContractRead, useContractWrite, useDisconnect, useSDK, useTokenBalance } from "@thirdweb-dev/react";
 import styles from "../styles/Home.module.css";
-import Image from "next/image";
 import { NextPage } from "next";
+import { useEffect, useState } from "react";
+import SwapInput from "../components/SwapInput";
 
 const Home: NextPage = () => {
+  // Contracts for the DEX and the token
+  const TOKEN_CONTRACT = "0x2fa7ffB4ad9cff6BA955e3f926480DF326DaBFcD";
+  const DEX_CONTRACT = "0x03E1954726137c748f07638C5D8afC48807A60A4";
+
+  // SDK instance
+  const sdk = useSDK();
+
+  // Get the address of the connected account
+  const address = useAddress();
+  // Get contract instance for the token and the DEX
+  const { contract: tokenContract } = useContract(TOKEN_CONTRACT);
+  const { contract: dexContract } = useContract(DEX_CONTRACT);
+  // Get token symbol and balance
+  const { data: symbol } = useContractRead(tokenContract, "symbol");
+  const { data: tokenBalance } = useTokenBalance(tokenContract, address);
+  // Get native balance and LP token balance
+  const { data: nativeBalance } = useBalance();
+  const { data: contractTokenBalance } = useTokenBalance(tokenContract, DEX_CONTRACT);
+
+  // State for the contract balance and the values to swap
+  const [contractBalance, setContractBalance] = useState<String>("0");
+  const [nativeValue, setNativeValue] = useState<String>("0");
+  const [tokenValue, setTokenValue] = useState<String>("0");
+  const [currentFrom, setCurrentFrom] = useState<String>("native");
+  const [isLoading, setIsLoading] = useState<Boolean>(false);
+
+  const { mutateAsync: swapNativeToken } = useContractWrite(
+    dexContract,
+    "swapEthTotoken"
+  );
+  const { mutateAsync: swapTokenToNative } = useContractWrite(
+    dexContract,
+    "swapTokenToEth"
+  );
+  const { mutateAsync: approveTokenSpending } = useContractWrite(
+    tokenContract,
+    "approve"
+  );
+
+  // Get the amount of tokens to get based on the value to swap
+  const { data: amountToGet } = useContractRead(
+    dexContract,
+    "getAmountOfTokens",
+    currentFrom === "native"
+      ? [
+          toWei(nativeValue as string || "0"),
+          toWei(contractBalance as string || "0"),
+          contractTokenBalance?.value,
+        ]
+      : [
+        toWei(tokenValue as string || "0"),
+        contractTokenBalance?.value,
+        toWei(contractBalance as string || "0"),
+      ]
+  );
+
+  // Fetch the contract balance
+  const fetchContractBalance = async () => {
+    try {
+      const balance = await sdk?.getBalance(DEX_CONTRACT);
+      setContractBalance(balance?.displayValue || "0");
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  // Execute the swap
+  // This function will swap the token to native or the native to the token
+  const executeSwap = async () => {
+    setIsLoading(true);
+    try {
+      if(currentFrom === "native") {
+        await swapNativeToken({
+          overrides: {
+            value: toWei(nativeValue as string || "0"),
+          }
+        });
+        alert("Swap executed successfully");
+      } else {
+        await approveTokenSpending({
+          args: [
+            DEX_CONTRACT,
+            toWei(tokenValue as string || "0"),
+          ]
+        });
+        await swapTokenToNative({
+          args: [
+            toWei(tokenValue as string || "0")
+          ]
+        });
+        alert("Swap executed successfully");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("An error occurred while trying to execute the swap");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch the contract balance and update it every 10 seconds
+  useEffect(() => {
+    fetchContractBalance();
+    setInterval(fetchContractBalance, 10000);
+  }, []);
+
+  // Update the amount to get based on the value
+  useEffect(() => {
+    if(!amountToGet) return;
+    if(currentFrom === "native") {
+      setTokenValue(toEther(amountToGet));
+    } else {
+      setNativeValue(toEther(amountToGet));
+    }
+  }, [amountToGet]);
+
   return (
     <main className={styles.main}>
       <div className={styles.container}>
-        <div className={styles.header}>
-          <h1 className={styles.title}>
-            Welcome to{" "}
-            <span className={styles.gradientText0}>
-              <a
-                href="https://thirdweb.com/"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                thirdweb.
-              </a>
-            </span>
-          </h1>
-
-          <p className={styles.description}>
-            Get started by configuring your desired network in{" "}
-            <code className={styles.code}>src/index.js</code>, then modify the{" "}
-            <code className={styles.code}>src/App.js</code> file!
-          </p>
-
-          <div className={styles.connect}>
-            <ConnectWallet />
+        <div style={{
+          backgroundColor: "#111",
+          padding: "2rem",
+          borderRadius: "10px",
+          minWidth: "500px",
+        }}>
+          <div 
+            >
+            <SwapInput
+              current={currentFrom as string}
+              type="native"
+              max={nativeBalance?.displayValue}
+              value={nativeValue as string}
+              setValue={setNativeValue}
+              tokenSymbol="MATIC"
+              tokenBalance= {nativeBalance?.displayValue}
+            />
+            <button
+              onClick={() => 
+                currentFrom === "native"
+                  ? setCurrentFrom("token")
+                  : setCurrentFrom("native")
+              }
+              className={styles.toggleButton}
+            >↓</button>
+            <SwapInput
+              current={currentFrom as string}
+              type="token"
+              max={tokenBalance?.displayValue}
+              value={tokenValue as string}
+              setValue={setTokenValue}
+              tokenSymbol={symbol as string}
+              tokenBalance={tokenBalance?.displayValue}
+            />
           </div>
-        </div>
-
-        <div className={styles.grid}>
-          <a
-            href="https://portal.thirdweb.com/"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              src="/images/portal-preview.png"
-              alt="Placeholder preview of starter"
-              width={300}
-              height={200}
-            />
-            <div className={styles.cardText}>
-              <h2 className={styles.gradientText1}>Portal ➜</h2>
-              <p>
-                Guides, references, and resources that will help you build with
-                thirdweb.
-              </p>
+          {address ? (
+            <div style={{
+              textAlign: "center",
+            }}>
+              <button
+                onClick={executeSwap}
+                disabled={isLoading as boolean}
+                className={styles.swapButton}
+              >{
+                isLoading
+                  ? "Loading..."
+                  : "Swap"  
+              }</button>
             </div>
-          </a>
-
-          <a
-            href="https://thirdweb.com/dashboard"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              src="/images/dashboard-preview.png"
-              alt="Placeholder preview of starter"
-              width={300}
-              height={200}
-            />
-            <div className={styles.cardText}>
-              <h2 className={styles.gradientText2}>Dashboard ➜</h2>
-              <p>
-                Deploy, configure, and manage your smart contracts from the
-                dashboard.
-              </p>
-            </div>
-          </a>
-
-          <a
-            href="https://thirdweb.com/templates"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              src="/images/templates-preview.png"
-              alt="Placeholder preview of templates"
-              width={300}
-              height={200}
-            />
-            <div className={styles.cardText}>
-              <h2 className={styles.gradientText3}>Templates ➜</h2>
-              <p>
-                Discover and clone template projects showcasing thirdweb
-                features.
-              </p>
-            </div>
-          </a>
+          ) : (
+            <p>Connect wallet to exchange.</p>
+          )}
         </div>
       </div>
     </main>

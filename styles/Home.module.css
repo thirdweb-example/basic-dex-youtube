@@ -3,6 +3,11 @@
   max-width: 1440px;
   padding: 0 1rem;
   margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
 }
 
 .gradientText0 {
@@ -142,4 +147,79 @@
 }
 .logo img {
   filter: invert(1);
+}
+
+.swapInputContainer {
+  position: relative;
+  width: 100%;
+  background-color: #111;
+  border-radius: 8px;
+}
+.swapInput {
+  position: relative;
+  background-color: #151515;
+  color: #fff;
+  width: 100%;
+  height: 100px;
+  font-size: 20px;
+  border: none;
+  border-radius: 5px;
+  padding: 5px 15px;
+}
+/* Chrome, Safari, Edge, Opera */
+.swapInput::-webkit-outer-spin-button,
+.swapInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+/* Firefox */
+.swapInput[type=number] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.swapInput:focus {
+  outline: none;
+  border: 2px solid royalblue;
+}
+.swapInput:disabled {
+  background-color: #151515;
+  color: #FFF;
+}
+.maxButton {
+  font-size: 10px;
+  border: none;
+  border-radius: 5px;
+  padding: 5px 15px;
+  background-color: #272c34;
+  color: #777;
+}
+.swapButton {
+  height: 42px;
+  width: 100%;
+  font-size: 14px;
+  border: none;
+  border-radius: 5px;
+  padding: 5px 15px;
+  margin-left: 5px;
+  background-color: royalblue;
+  color: #fff;
+  cursor: pointer;
+}
+.swapButton:disabled {
+  background-color: #272c34;
+  color: #777;
+  cursor: not-allowed;
+}
+.toggleButton {
+  height: 36px;
+  font-size: 14px;
+  border: 2px solid #000;
+  border-radius: 5px;
+  padding: 5px 15px;
+  background-color: #151515;
+  color: #CCC;
+  cursor: pointer;
+  margin-top: -17px;
+  margin-bottom: -17px;
+  z-index: 99;
 }
