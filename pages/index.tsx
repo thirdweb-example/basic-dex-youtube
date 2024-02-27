@@ -1,4 +1,4 @@
-import { ConnectWallet, toEther, toWei, useAddress, useBalance, useContract, useContractMetadata, useContractRead, useContractWrite, useDisconnect, useSDK, useTokenBalance } from "@thirdweb-dev/react";
+import { toEther, toWei, useAddress, useBalance, useContract, useContractRead, useContractWrite, useSDK, useTokenBalance } from "@thirdweb-dev/react";
 import styles from "../styles/Home.module.css";
 import { NextPage } from "next";
 import { useEffect, useState } from "react";
@@ -6,8 +6,8 @@ import SwapInput from "../components/SwapInput";
 
 const Home: NextPage = () => {
   // Contracts for the DEX and the token
-  const TOKEN_CONTRACT = "0x2fa7ffB4ad9cff6BA955e3f926480DF326DaBFcD";
-  const DEX_CONTRACT = "0x03E1954726137c748f07638C5D8afC48807A60A4";
+  const TOKEN_CONTRACT = "<YOUR_CONTRACT>";
+  const DEX_CONTRACT = "<YOUR_CONTRACT>";
 
   // SDK instance
   const sdk = useSDK();
